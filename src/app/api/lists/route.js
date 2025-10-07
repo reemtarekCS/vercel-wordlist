@@ -47,8 +47,22 @@ export async function GET(req) {
     if (publicOnly) {
       query = query.eq('is_public', true);
     } else if (user) {
-      // Show user's own lists and public lists they're not a member of
-      query = query.or(`owner_id.eq.${user.id},is_public.eq.true`);
+      // Show only lists the user owns or is a member of
+      // First get the user's memberships, then filter lists accordingly
+      const { data: memberships } = await supabase
+        .from('list_members')
+        .select('list_id')
+        .eq('user_id', user.id);
+
+      const memberListIds = memberships?.map(m => m.list_id) || [];
+
+      if (memberListIds.length > 0) {
+        // User is a member of some lists - show their lists and owned lists
+        query = query.or(`owner_id.eq.${user.id},id.in.(${memberListIds.join(',')})`);
+      } else {
+        // User is not a member of any lists - show only lists they own
+        query = query.eq('owner_id', user.id);
+      }
     } else {
       // Show only public lists for anonymous users
       query = query.eq('is_public', true);
@@ -61,24 +75,7 @@ export async function GET(req) {
       return NextResponse.json({ error: 'Fetch failed' }, { status: 500 });
     }
 
-    // Filter out lists where user is already a member (for non-owners)
-    let filteredLists = data || [];
-    if (user && !publicOnly) {
-      // Get user's memberships
-      const { data: memberships } = await supabase
-        .from('list_members')
-        .select('list_id')
-        .eq('user_id', user.id);
-
-      const memberListIds = new Set(memberships?.map(m => m.list_id) || []);
-
-      filteredLists = filteredLists.filter(list => {
-        // Keep lists owned by user or public lists they're not a member of
-        return list.owner_id === user.id || !memberListIds.has(list.id);
-      });
-    }
-
-    return NextResponse.json({ ok: true, lists: filteredLists }, { status: 200 });
+    return NextResponse.json({ ok: true, lists: data || [] }, { status: 200 });
   } catch (err) {
     console.error('API GET lists error', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
