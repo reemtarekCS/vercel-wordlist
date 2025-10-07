@@ -43,7 +43,7 @@ export default function RegisterPage() {
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ width: 64, height: 64, borderRadius: 16, background: 'linear-gradient(135deg, #fde047 0%, #fbbf24 100%)', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#92400e', fontSize: 32, fontWeight: 700, boxShadow: '0 4px 12px rgba(251, 191, 36, 0.4)' }}>S</div>
           <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: '#1a1f36', marginBottom: 8 }}>Create Account</h1>
-          <p style={{ color: '#6b7280', margin: 0, fontSize: 15 }}>Join Soul's List community</p>
+          <p style={{ color: '#6b7280', margin: 0, fontSize: 15 }}>Join The S Lists community</p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 18 }}>

@@ -237,7 +237,7 @@ export default function SharedPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg, #fde047 0%, #fbbf24 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#92400e', fontSize: 20, fontWeight: 700, boxShadow: '0 2px 8px rgba(251, 191, 36, 0.25)' }}>S</div>
             <div>
-              <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, color: '#1a1f36', letterSpacing: '-0.02em' }}>Soul's List</h1>
+              <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, color: '#1a1f36', letterSpacing: '-0.02em' }}>S Lists</h1>
               <div style={{ color: '#6b7280', marginTop: 2, fontSize: 14 }}>Collaborative Word Collection</div>
             </div>
           </div>
@@ -378,12 +378,7 @@ export default function SharedPage() {
             <h3 style={{ marginTop: 0, fontSize: 16, fontWeight: 600, color: '#92400e', marginBottom: 12 }}>Account</h3>
             <div style={{ color: '#92400e', fontSize: 14, marginBottom: 6, opacity: 0.8 }}>Signed in as</div>
             <div style={{ color: '#78350f', fontSize: 18, fontWeight: 700, marginBottom: 16 }}>{session?.name}</div>
-            <div style={{ marginTop: 16, padding: 12, background: 'rgba(255,255,255,0.3)', borderRadius: 8, color: '#92400e', fontSize: 12, lineHeight: 1.6 }}>
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>✨ Pro Tips</div>
-              <div>• Changes sync in real-time</div>
-              <div>• Use search to find words globally</div>
-              <div>• Max 20 words per user</div>
-            </div>
+           
           </div>
         </div>
       </div>

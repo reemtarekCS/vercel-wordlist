@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Soul's Checker",
-  description: "Word checker and Shared list",
+  title: "The S Lists",
+  description: "Collaborative Word Collection Platform",
 };
 
 export default function RootLayout({ children }) {
