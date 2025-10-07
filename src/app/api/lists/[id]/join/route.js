@@ -40,6 +40,7 @@ export async function POST(req, { params }) {
       .maybeSingle();
 
     if (existingMembership) {
+      console.log('User already a member of list:', id);
       return NextResponse.json({ error: 'Already a member of this list' }, { status: 400 });
     }
 
@@ -53,8 +54,11 @@ export async function POST(req, { params }) {
       .maybeSingle();
 
     if (existingRequest) {
+      console.log('User has pending join request for list:', id);
       return NextResponse.json({ error: 'Join request already pending' }, { status: 400 });
     }
+
+    console.log('User joining list:', id, 'isPublic:', list.is_public);
 
     // Handle public lists vs private lists
     if (list.is_public) {
@@ -68,10 +72,11 @@ export async function POST(req, { params }) {
         }]);
 
       if (joinError) {
-        console.error('Supabase join list error', joinError);
+        console.error('Supabase join list error:', joinError);
         return NextResponse.json({ error: 'Failed to join list' }, { status: 500 });
       }
 
+      console.log('Successfully joined public list:', id);
       return NextResponse.json({ ok: true, message: 'Successfully joined the list' }, { status: 200 });
     } else {
       // Private list - need password or request approval
@@ -93,10 +98,11 @@ export async function POST(req, { params }) {
           }]);
 
         if (joinError) {
-          console.error('Supabase join list error', joinError);
+          console.error('Supabase join private list error:', joinError);
           return NextResponse.json({ error: 'Failed to join list' }, { status: 500 });
         }
 
+        console.log('Successfully joined private list:', id);
         return NextResponse.json({ ok: true, message: 'Successfully joined the list' }, { status: 200 });
       } else {
         // No password or no password set - create join request

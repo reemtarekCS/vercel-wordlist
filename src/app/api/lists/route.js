@@ -28,6 +28,8 @@ export async function GET(req) {
 
     const user = authRes.user;
     const publicOnly = url.searchParams.get('public') === 'true';
+    const discoverMode = url.searchParams.get('discover') === 'true';
+    const searchQuery = url.searchParams.get('search');
 
     let query = supabase
       .from('lists')
@@ -40,32 +42,90 @@ export async function GET(req) {
         created_at,
         updated_at,
         custom_title,
-        custom_subtitle,
-        list_members!inner(role)
+        custom_subtitle
       `);
 
     if (publicOnly) {
       query = query.eq('is_public', true);
+    } else if (discoverMode) {
+      // Discover mode: show all public lists and private lists (but not user's own lists)
+      if (user) {
+        query = query.neq('owner_id', user.id);
+      }
+      // For anonymous users, only show public lists
+      if (!user) {
+        query = query.eq('is_public', true);
+      }
     } else if (user) {
       // Show only lists the user owns or is a member of
-      // First get the user's memberships, then filter lists accordingly
-      const { data: memberships } = await supabase
+      // Get lists owned by the user
+      const { data: ownedLists } = await supabase
+        .from('lists')
+        .select('*')
+        .eq('owner_id', user.id);
+
+      // Get lists where user is a member (but not owner)
+      const { data: memberListsData } = await supabase
         .from('list_members')
-        .select('list_id')
+        .select('list_id, role')
         .eq('user_id', user.id);
 
-      const memberListIds = memberships?.map(m => m.list_id) || [];
+      // Get the actual list data for member lists
+      const memberListIds = memberListsData?.map(m => m.list_id) || [];
+      let memberLists = [];
 
       if (memberListIds.length > 0) {
-        // User is a member of some lists - show their lists and owned lists
-        query = query.or(`owner_id.eq.${user.id},id.in.(${memberListIds.join(',')})`);
-      } else {
-        // User is not a member of any lists - show only lists they own
-        query = query.eq('owner_id', user.id);
+        const { data: listsData } = await supabase
+          .from('lists')
+          .select('*')
+          .in('id', memberListIds)
+          .neq('owner_id', user.id); // Exclude lists they own
+
+        memberLists = listsData?.map(list => {
+          const membership = memberListsData.find(m => m.list_id === list.id);
+          return { ...list, member_role: membership?.role, is_owner: false };
+        }) || [];
       }
+
+      // Combine results and add computed fields
+      const allLists = [
+        ...(ownedLists || []).map(list => ({ ...list, is_owner: true })),
+        ...memberLists
+      ];
+
+      // Remove duplicates and calculate counts
+      const uniqueLists = [];
+      for (const list of allLists) {
+        if (!uniqueLists.find(l => l.id === list.id)) {
+          // Get member count
+          const { count: memberCount } = await supabase
+            .from('list_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('list_id', list.id);
+
+          // Get word count
+          const { count: wordCount } = await supabase
+            .from('words')
+            .select('*', { count: 'exact', head: true })
+            .eq('list_id', list.id);
+
+          uniqueLists.push({
+            ...list,
+            member_count: memberCount || 0,
+            word_count: wordCount || 0
+          });
+        }
+      }
+
+      return NextResponse.json({ ok: true, lists: uniqueLists }, { status: 200 });
     } else {
       // Show only public lists for anonymous users
       query = query.eq('is_public', true);
+    }
+
+    // Apply search filter if provided (only for publicOnly and discoverMode cases)
+    if (searchQuery && (publicOnly || discoverMode)) {
+      query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
     }
 
     const { data, error } = await query.order('created_at', { ascending: false });
@@ -75,7 +135,26 @@ export async function GET(req) {
       return NextResponse.json({ error: 'Fetch failed' }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, lists: data || [] }, { status: 200 });
+    // Add computed fields for member_count and word_count
+    const listsWithCounts = await Promise.all((data || []).map(async (list) => {
+      const { count: memberCount } = await supabase
+        .from('list_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('list_id', list.id);
+
+      const { count: wordCount } = await supabase
+        .from('words')
+        .select('*', { count: 'exact', head: true })
+        .eq('list_id', list.id);
+
+      return {
+        ...list,
+        member_count: memberCount || 0,
+        word_count: wordCount || 0
+      };
+    }));
+
+    return NextResponse.json({ ok: true, lists: listsWithCounts }, { status: 200 });
   } catch (err) {
     console.error('API GET lists error', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
